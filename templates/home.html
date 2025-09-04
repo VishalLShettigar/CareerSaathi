@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CareerSaathi – AI Resume & Job Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg1:url('../static/uploads/backgroundcareersaathi.png');
+      --bg2: url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d');
+      --bg3: url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f');
+      --bg4: url('https://images.unsplash.com/photo-1535223289827-42f1e9919769');
+      --bg5: url('https://images.unsplash.com/photo-1558655146-d09347e92766');
+      --bg6: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d');
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-image: var(--bg1);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background 1s ease-in-out;
+    }
+/* Logo container for positioning */
+.logo-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+/* Logo image styling */
+.logo-top-left {
+  max-height: 150px; /* controls the size */
+  width: 150px;
+  opacity: 0;
+  transform: scale(0.8) translateY(-10px);
+  animation: logoLoad 1s ease-out forwards, logoFloat 4s ease-in-out infinite;
+}
+
+/* Initial fade-in + scale animation */
+@keyframes logoLoad {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Gentle floating effect */
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.02);
+  }
+}
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.9);
+      height: 100%;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      color: #fff;
+      padding: 30px;
+      transition: background-color 0.5s ease;
+    }
+
+    .project-title {
+      font-size: 3rem;
+      font-weight: 700;
+      text-shadow: 1px 2px 8px #000;
+      opacity: 0;
+      transform: translateY(-50px);
+      animation: slideFadeIn 1s ease forwards;
+    }
+
+    .project-subtitle {
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: #ccc;
+      opacity: 0;
+      transform: translateY(50px);
+      animation: slideFadeInSub 1.2s ease forwards;
+    }
+
+    .author {
+      font-size: 1.1rem;
+      margin-top: 10px;
+      color: #ccc;
+      animation: fadeIn 2.5s ease-out;
+    }
+
+    .btn-start {
+      margin-top: 30px;
+      padding: 12px 30px;
+      font-size: 1.1rem;
+      border-radius: 30px;
+      background-color: #00cec9;
+      color: white;
+      border: none;
+      transition: all 0.3s ease;
+      animation: fadeInUp 1.2s ease-out;
+    }
+
+    .btn-start:hover {
+      background-color: #00b894;
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
+    }
+
+    .card-popup {
+      display: none;
+      margin-top: 30px;
+      background-color: #d8d3d345;
+      color: #000;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      animation: fadeInUp 0.8s ease forwards;
+      max-width: 350px;
+      width: 100%;
+    }
+
+    .card-popup.show {
+      display: block;
+    }
+
+    .popup-btn {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-weight: 600;
+      border-radius: 30px;
+    }
+
+    .btn-group-links {
+      margin-top: 20px;
+    }
+
+    .floating-btns {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-theme {
+      background-color: #000;
+      color: #fff;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+
+    .dark-mode .overlay {
+      background-color: rgba(20, 20, 20, 0.9);
+    }
+
+    .dark-mode .card-popup {
+      background-color: #1e1e1e;
+      color: #f1f1f1;
+    }
+
+    .dark-mode .btn-theme {
+      background-color: #fff;
+      color: #000;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideFadeIn {
+      0% { opacity: 0; transform: translateY(-50px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideFadeInSub {
+      0% { opacity: 0; transform: translateY(50px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="logo-container">
+  <img src="/static/uploads/logocareersaathi.png" alt="CareerSaathi Logo" class="logo-top-left">
+</div>
+
+<div class="overlay" id="mainOverlay">
+  <div class="floating-btns">
+    <button class="btn btn-theme btn-sm" onclick="toggleDarkMode()">🌓 Dark Mode</button>
+    <button class="btn btn-theme btn-sm" onclick="changeBackground()">🎨 Background</button>
+    <button class="btn btn-theme btn-sm" onclick="resetBackground()">🔁 Reset</button>
+  </div>
+
+  <div class="project-title">CareerSaathi</div>
+  <div class="project-subtitle">AI Resume Analyzer & Job Portal</div>
+  <div class="author">Developed by <strong>Vishal L Shettigar</strong></div>
+
+  <button class="btn btn-start" onclick="showCard()">🚀 Get Started</button>
+
+  <div class="btn-group-links">
+    <a href="/about-project" class="btn btn-outline-info">📘 About This Project</a>
+    <a href="/feedback" class="btn btn-outline-light">💬 Feedback</a>
+  </div>
+
+  <div class="card-popup" id="entryCard">
+    <a href="/login" class="btn btn-success popup-btn">👤 User Login</a>
+    <a href="/recruiter-login" class="btn btn-primary popup-btn">🏢 Recruiter Portal</a>
+    <a href="/owner-login" class="btn btn-dark popup-btn">🛠️ Owner Panel</a>
+  </div>
+</div>
+
+<script>
+  let bgIndex = 1;
+
+  function showCard() {
+    document.getElementById("entryCard").classList.add("show");
+  }
+
+  function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+    document.getElementById("mainOverlay").classList.toggle("dark-mode");
+  }
+
+  function changeBackground() {
+    bgIndex++;
+    if (bgIndex > 5) bgIndex = 1;
+    document.body.style.backgroundImage = getComputedStyle(document.documentElement).getPropertyValue(`--bg${bgIndex}`);
+  }
+
+  function resetBackground() {
+    bgIndex = 1;
+    document.body.style.backgroundImage = getComputedStyle(document.documentElement).getPropertyValue('--bg1');
+  }
+</script>
+
+</body>
+</html>

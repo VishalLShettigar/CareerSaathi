@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About AI Career Counselor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1485988412941-77a35537dae4') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .about-container {
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 40px;
+      border-radius: 15px;
+      max-width: 900px;
+      margin: 60px auto;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    ul li {
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      border: none;
+      transition: 0.3s;
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+    footer {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      background: #222;
+      height: 50px;
+    }
+    .moving-footer {
+      position: absolute;
+      white-space: nowrap;
+      animation: slide 10s linear infinite, colorChange 5s ease-in-out infinite;
+      font-size: 1rem;
+      padding: 15px;
+      color: white;
+    }
+    @keyframes slide {
+      0% { left: 100%; }
+      100% { left: -100%; }
+    }
+    @keyframes colorChange {
+      0% { color: #ff7675; }
+      25% { color: #74b9ff; }
+      50% { color: #55efc4; }
+      75% { color: #ffeaa7; }
+      100% { color: #fd79a8; }
+    }
+  </style>
+</head>
+<body>
+ <div class="container my-5">
+  <h2 class="text-center mb-4 text-white">About the AI Career Counselor Project</h2>
+  <div class="row g-4">
+
+    <!-- Card 1: Core Features -->
+    <div class="col-md-6">
+      <div class="card shadow-lg rounded-4 p-4 h-100">
+        <h5 class="card-title mb-3 text-success">🚀 Core Functionality</h5>
+        <ul class="list-unstyled">
+          <li>✅ Upload resume in PDF format</li>
+          <li>✅ Extract details: name, email, phone, education, experience</li>
+          <li>✅ Extract certifications and degree levels using NLP</li>
+          <li>✅ Skill extraction with keyword mapping</li>
+          <li>✅ Resume scoring system (Excellent, Good, Average, Poor)</li>
+          <li>✅ Generate personalized career recommendations</li>
+          <li>✅ Generate downloadable career report (PDF)</li>
+          <li>✅ View dynamic resume chart & score breakdown (Chart.js)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Card 2: Advanced Tools & Extras -->
+    <div class="col-md-6">
+      <div class="card shadow-lg rounded-4 p-4 h-100">
+        <h5 class="card-title mb-3 text-primary">🧠 Smart Integrations & Tools</h5>
+        <ul class="list-unstyled">
+          <li>✅ AI-powered chatbot (Flan-T5 based)</li>
+          <li>✅ Resume Builder tool with photo, projects, and layout</li>
+          <li>✅ Recruiter module: login & post job features</li>
+          <li>✅ Job management with edit/delete options</li>
+          <li>✅ Transparent data cards for parsed content</li>
+          <li>✅ MySQL database integration</li>
+          <li>✅ Session-based recruiter login system</li>
+          <li>✅ Hosted on Render (Flask + MySQL)</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="text-center mt-5">
+    <a href="/" class="btn btn-outline-light btn-lg rounded-pill">⬅️ Back to Home</a>
+  </div>
+</div>
+
+
+  <footer>
+    <div class="moving-footer">🚀 Smart Career Guidance System05 | MCA Final Year Project | Built with ❤️07 by Vishal L Shettigar</div>
+  </footer>
+</body>
+</html>

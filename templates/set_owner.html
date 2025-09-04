@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Set Owner</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: url('https://www.shutterstock.com/image-photo/blurred-office-background-dark-business-600nw-1929859697.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card-center {
+      max-width: 300px;
+      margin: 40px auto;
+      padding: 20px;
+      border-radius: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .circle-animation {
+      width: 100px;
+      height: 100px;
+      margin: 20px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pop 0.5s ease-out;
+    }
+
+    /* Checkmark SVG */
+    .checkmark,
+    .crossmark {
+      width: 80px;
+      height: 80px;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .checkmark {
+      stroke: #28a745;
+    }
+
+    .crossmark {
+      stroke: #dc3545;
+    }
+
+    .circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      animation: stroke 0.6s ease-out forwards;
+    }
+
+    .check {
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: stroke-check 0.4s 0.6s ease-out forwards;
+    }
+
+    .cross {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+    }
+
+    .cross1 {
+      animation: stroke-cross 0.4s 0.6s ease-out forwards;
+    }
+
+    .cross2 {
+      animation: stroke-cross 0.4s 0.9s ease-out forwards;
+    }
+
+    @keyframes stroke {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes stroke-check {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes stroke-cross {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("form[method='POST']");
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        const newUsername = form.querySelector("input[name='new_username']").value.trim();
+        const confirmUsername = form.querySelector("input[name='confirm_username']").value.trim();
+        const newPassword = form.querySelector("input[name='new_password']").value.trim();
+        const confirmPassword = form.querySelector("input[name='confirm_password']").value.trim();
+
+        let errorMessage = "";
+
+        if (newUsername !== confirmUsername) {
+          errorMessage += "❗ New Username and Confirm Username do not match.\n";
+        }
+
+        if (newPassword !== confirmPassword) {
+          errorMessage += "❗ New Password and Confirm Password do not match.";
+        }
+
+        if (errorMessage !== "") {
+          e.preventDefault();
+          alert(errorMessage); // or replace with styled alert
+        }
+      });
+    }
+  });
+</script>
+
+</head>
+<body>
+
+<div class="container">
+  {% if stage == 'initial' %}
+    <div class="card card-center">
+      <h4 class="text-center">Verify Current Owner</h4>
+      <form method="POST">
+        <input type="hidden" name="step" value="verify_old" />
+        <div class="mb-3">
+          <label>Username</label>
+          <input type="text" name="old_username" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Password</label>
+          <input type="password" name="old_password" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Verify</button>
+      </form>
+    </div>
+
+  {% elif stage == 'verified' %}
+    <div class="card card-center text-center">
+      <div class="circle-animation">
+        <svg class="checkmark" viewBox="0 0 52 52">
+          <circle class="circle" cx="26" cy="26" r="25" />
+          <path class="check" d="M14 27l7 7 16-16" />
+        </svg>
+      </div>
+      <h5 class="mt-3 text-success">Success</h5>
+      <form method="GET" action="/set-owner">
+  <input type="hidden" name="stage" value="change">
+  <button class="btn btn-success mt-3">Okay</button>
+</form>
+
+    </div>
+
+  {% elif stage == 'change_success'  %}
+    <div class="card card-center text-center">
+      <div class="circle-animation">
+        <svg class="checkmark" viewBox="0 0 52 52">
+          <circle class="circle" cx="26" cy="26" r="25" />
+          <path class="check" d="M14 27l7 7 16-16" />
+        </svg>
+      </div>
+      <h5 class="mt-3 text-success">Success</h5>
+      <form method="GET" action="/owner-login">
+  <input type="hidden" name="stage" value="change">
+  <button class="btn btn-success mt-3">Okay</button>
+</form>
+
+    </div>
+  {% elif stage == 'verify_failed' or stage == 'change_failed' %}
+    <div class="card card-center text-center">
+      <div class="circle-animation">
+        <svg class="crossmark" viewBox="0 0 52 52">
+          <circle class="circle" cx="26" cy="26" r="25" />
+          <path class="cross cross1" d="M16 16L36 36" />
+          <path class="cross cross2" d="M36 16L16 36" />
+        </svg>
+      </div>
+      <h5 class="mt-3 text-danger">Failure</h5>
+      <a href="/set-owner" class="btn btn-danger mt-3">Try Again</a>
+    </div>
+
+  {% elif stage == 'change_form' %}
+    <div class="card card-center">
+      <h4 class="text-center">Set New Owner Credentials</h4>
+      <form method="POST">
+        <input type="hidden" name="step" value="change_new" />
+        <div class="mb-3">
+          <label>New Username</label>
+          <input type="text" name="new_username" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Confirm Username</label>
+          <input type="text" name="confirm_username" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>New Password</label>
+          <input type="password" name="new_password" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Confirm Password</label>
+          <input type="password" name="confirm_password" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Change</button>
+      </form>
+    </div>
+  {% endif %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Preferences</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background: url('https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background 0.5s ease-in-out;
+    }
+    .settings-container {
+      max-width: 1100px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 16px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      padding: 40px 50px;
+      animation: slideIn 1s ease-in-out;
+      backdrop-filter: blur(14px);
+    }
+    .card {
+      border-radius: 14px;
+      transition: transform 0.5s ease, box-shadow 0.5s ease;
+      opacity: 0;
+      animation: fadeInUp 1s forwards;
+      cursor: pointer;
+      transform-style: preserve-3d;
+    }
+    .card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
+    }
+    .card:hover .card-title {
+      font-size: 1.5rem;
+      transition: font-size 0.3s ease;
+    }
+    .card .card-text {
+      display: none;
+      transition: opacity 0.4s ease-in-out;
+      font-size: 0.95rem;
+      color: #333;
+    }
+    .card.active .card-text {
+      display: block;
+      animation: fadeText 0.5s ease-in-out;
+    }
+    @keyframes slideIn {
+      0% { transform: translateY(40px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeText {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .card:nth-child(1) { animation-delay: 0.2s; }
+    .card:nth-child(2) { animation-delay: 0.4s; }
+    .card:nth-child(3) { animation-delay: 0.6s; }
+    .future-card { animation-delay: 0.8s !important; }
+    h3 {
+      animation: fadeInUp 1s ease-in-out;
+      font-weight: bold;
+    }
+    ul.module-points {
+      margin-bottom: 0;
+      padding-left: 20px;
+    }
+    .floating-nav {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 9999;
+    }
+    .btn-back {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+    }
+    .dark-mode {
+      background-color: #121212 !important;
+      color: #f8f9fa !important;
+    }
+    .dark-mode .settings-container {
+      background: rgba(30, 30, 30, 0.85);
+      color: #f8f9fa;
+    }
+    .dark-mode .card-text {
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <a href="/admin-dashboard" class="btn btn-warning btn-back"><i class="bi bi-arrow-left"></i> Back</a>
+  <div class="floating-nav">
+    <button class="btn btn-dark" onclick="toggleDarkMode()"><i class="bi bi-moon-stars"></i> Toggle Dark Mode</button>
+  </div>
+  <div class="settings-container">
+    <h3 class="mb-4 text-center">🔍 System Modules Overview</h3>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card shadow border-primary" onclick="toggleCard(this)">
+          <div class="card-body">
+            <h5 class="card-title text-primary">👤 User Module</h5>
+            <ul class="module-points">
+              <li>Upload and analyze resumes</li>
+              <li>Get career suggestions</li>
+              <li>View score and charts</li>
+              <li>Download reports</li>
+              <li>Build resume</li>
+              <li>Find & apply for jobs</li>
+            </ul>
+            <p class="card-text mt-2">Users can upload their resumes and get smart, AI-based job recommendations. They also receive a personalized score based on skills, education, and experience. Visual charts help them understand how well they match suggested roles. Users can download their career reports as PDF, instantly build resumes using templates, and explore job listings to apply directly from the platform.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow border-success" onclick="toggleCard(this)">
+          <div class="card-body">
+            <h5 class="card-title text-success">💼 Recruiter Module</h5>
+            <ul class="module-points">
+              <li>Post jobs with details</li>
+              <li>Edit or delete postings</li>
+              <li>Manage their own jobs</li>
+              <li>Track application analytics</li>
+            </ul>
+            <p class="card-text mt-2">Recruiters can post detailed job listings including position, required skills, experience, and location. They have full access to manage only their own job postings, with options to edit or delete them anytime. A streamlined dashboard interface supports effective job tracking and basic analytics on applications received.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow border-warning" onclick="toggleCard(this)">
+          <div class="card-body">
+            <h5 class="card-title text-warning">🛡️ Owner Module</h5>
+            <ul class="module-points">
+              <li>Full data access</li>
+              <li>Manage users/recruiters</li>
+              <li>Set scoring rules</li>
+              <li>Control branding</li>
+              <li>Audit system usage</li>
+            </ul>
+            <p class="card-text mt-2">The owner has administrative control across all modules. This includes managing user and recruiter accounts, updating AI scoring rules, modifying footer branding, and auditing resume analysis history. The owner can update global system preferences that reflect across the entire site, ensuring uniform branding and rule enforcement.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card mt-5 shadow border-info future-card" onclick="toggleCard(this)">
+      <div class="card-body">
+        <h5 class="card-title text-info">🚀 Future Enhancements</h5>
+        <ul class="module-points">
+          <li>Advanced analytics</li>
+          <li>AI resume tips</li>
+          <li>Job alerts</li>
+          <li>Chatbot advisor</li>
+          <li>Theme customization</li>
+        </ul>
+        <p class="card-text mt-2">Future updates may include a powerful analytics dashboard to visualize resume uploads and job activity, AI-generated resume improvement tips, automated job alert notifications for users, a smart chatbot assistant for career advice, and advanced customization options for resume templates and themes.</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleCard(card) {
+      card.classList.toggle('active');
+    }
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      document.querySelector('.settings-container').classList.toggle('dark-mode');
+    }
+  </script>
+</body>
+</html>

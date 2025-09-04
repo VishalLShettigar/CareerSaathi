@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Resume Analysis Result</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" />
+  <style>
+    *::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    body {
+      background: url('https://images.unsplash.com/photo-1531297484001-80022131f5a1') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+      min-height: 100vh;
+      padding: 0 1rem 5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: rgba(0, 0, 0, 0.85);
+      padding: 1rem;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .main-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 2rem;
+      animation: fadeSlide 0.8s ease-in-out;
+    }
+
+    @keyframes fadeSlide {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card-box {
+      flex: 1 1 400px;
+      max-width: 500px;
+      max-height: 500px;
+      overflow-y: auto;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      color: #fff;
+      padding: 1.5rem;
+      transition: transform 0.3s ease;
+    }
+
+    .card-box:hover {
+      transform: scale(1.02);
+    }
+
+    .highlight-section {
+      background: rgba(40, 167, 69, 0.2);
+      border-left: 6px solid #28a745;
+      backdrop-filter: blur(8px);
+    }
+
+    h5 {
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+
+    .btn-sm-custom {
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-sm-custom:hover {
+      transform: scale(1.05);
+    }
+
+    .button-group {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .section-label {
+      font-weight: bold;
+      margin-top: 1.5rem;
+      color: #f8f9fa;
+      font-size: 1.05rem;
+    }
+
+    .stylish-name {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 2rem;
+      color: #f8f9fa;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+      letter-spacing: 1px;
+    }
+
+    .animate-name {
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 0.15em solid #fff;
+      animation: typing 2.5s steps(30, end), blink-caret 0.75s step-end infinite;
+    }
+
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+
+    @keyframes blink-caret {
+      from, to { border-color: transparent }
+      50% { border-color: white }
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .main-container, .main-container * {
+        visibility: visible;
+      }
+      .main-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="sticky-header">🎉 Resume Analysis Result</div>
+
+    {% if result.get('error') %}
+      <div class="alert alert-danger mt-4">{{ result['error'] }}</div>
+    {% else %}
+      <div class="main-container">
+        <!-- Personal Info Card -->
+        <div class="card-box">
+          <div class="name-container text-center animate-name">
+            <h1 class="display-4 fw-bold stylish-name">{{ result['name'] }}</h1>
+          </div>
+
+          <h5>📧 Email:</h5>
+          <p>{{ result['email'] }}</p>
+
+          <h5>📞 Phone:</h5>
+          <p>{{ result['phone'] }}</p>
+
+          <h5>💼 Skills:</h5>
+          <p>{{ result['skills'] | join(', ') }}</p>
+
+          {% if result.get('education') %}
+            <div class="section-label">🎓 Education</div>
+            <p style="white-space: pre-line;">{{ result['education'] }}</p>
+          {% endif %}
+
+          {% if result.get('certifications') %}
+            <div class="section-label">📜 Certification Courses</div>
+            <p style="white-space: pre-line;">{{ result['certifications'] }}</p>
+          {% endif %}
+
+          {% if result.get('experience') %}
+            <div class="section-label">👨‍💼 Experience</div>
+            <p style="white-space: pre-line;">{{ result['experience'] }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Recommended Careers Card -->
+        <div class="card-box highlight-section">
+          <h4 class="text-center mb-3">🌟 Recommended Careers</h4>
+          <ul>
+            {% for career in recommendations %}
+              <li>✅ {{ career }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Button Group Section -->
+      <div class="button-group">
+        <form action="/download-report" method="post">
+          <input type="hidden" name="email" value="{{ result['email'] }}">
+          <input type="hidden" name="phone" value="{{ result['phone'] }}">
+          <input type="hidden" name="score" value="{{ result['score'] }}">
+          <input type="hidden" name="score_label" value="{{ result['score_label'] }}">
+          {% for skill in result['skills'] %}
+            <input type="hidden" name="skills" value="{{ skill }}">
+          {% endfor %}
+          {% for career in recommendations %}
+            <input type="hidden" name="careers" value="{{ career }}">
+          {% endfor %}
+          <button type="submit" class="btn btn-success btn-sm-custom">📄 Download Report</button>
+        </form>
+
+        <form action="/chart" method="post">
+          <input type="hidden" name="skills" value='{{ result.get("skills") | tojson | safe }}' />
+          <input type="hidden" name="email" value="{{ result['email'] }}">
+          <input type="hidden" name="phone" value="{{ result['phone'] }}">
+          <input type="hidden" name="education" value="{{ result['education'] }}">
+          <input type="hidden" name="length" value="{{ result['word_count'] | default(600) }}">
+          <input type="hidden" name="experience" value="{{ result['experience'] }}">
+          <button type="submit" class="btn btn-primary btn-sm-custom w-100">📊 View Skills Chart</button>
+        </form>
+
+        <a href="/about-scoring" class="btn btn-info btn-sm-custom">ℹ️ Resume Scoring</a>
+        <a href="/index" class="btn btn-outline-light btn-sm-custom">⬅️ Upload Another</a>
+        <a href="/index" class="btn btn-outline-light btn-sm-custom">Back</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div style="text-align: center; padding: 1rem; color: #ccc; font-size: 0.9rem;">
+    {% include 'footer.html' %}
+  </div>
+</body>
+</html>

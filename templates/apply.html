@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Job Application</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f8f9fa, #e0e0e0);
+      padding: 20px;
+      position: relative;
+    }
+
+    .container-main {
+      display: flex;
+      gap: 20px;
+    }
+
+    .sidebar {
+      width: 200px;
+    }
+
+    .sidebar .btn {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .card-section {
+      flex-grow: 1;
+    }
+
+    .section-card {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .section-card.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .progress {
+      height: 20px;
+    }
+
+    .ack-section {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .blurred {
+      filter: blur(5px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+      display: none;
+    }
+
+    .overlay.active {
+      display: block;
+    }
+
+    .success-card {
+      text-align: center;
+      padding: 30px;
+      border: 2px solid #28a745;
+      border-radius: 15px;
+      background-color: #e6ffed;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      display: none;
+    }
+
+    .success-card.active {
+      display: block;
+    }
+
+    .circle-animation {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 20px;
+    }
+
+    .checkmark {
+      stroke: #28a745;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      animation: drawCircle 1s ease forwards;
+    }
+
+    .check {
+      stroke: #28a745;
+      stroke-width: 4;
+      fill: none;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: drawCheck 0.5s ease 1s forwards;
+    }
+
+    @keyframes drawCircle {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay"></div>
+
+  <div class="container" id="mainContainer">
+    <h3 class="text-primary">Apply for: {{ job.designation }} at {{ job.company }}</h3>
+    <p><strong>Skills:</strong> {{ job.skills_required }} | <strong>Qualification:</strong> {{ job.qualification }}</p>
+
+    <div class="progress mb-4">
+      <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" id="progressBar">0%</div>
+    </div>
+
+    <div class="container-main">
+      <div class="sidebar">
+        <button class="btn btn-outline-primary" onclick="showSection('personal')">Personal</button>
+        <button class="btn btn-outline-primary" onclick="showSection('education')">Education</button>
+        <button class="btn btn-outline-primary" onclick="showSection('experience')">Experience</button>
+        <button class="btn btn-outline-primary" onclick="showSection('skills')">Skills</button>
+        <button class="btn btn-outline-primary" onclick="showSection('upload')">Upload</button>
+      </div>
+
+      <div class="card-section">
+        <form id="applicationForm" method="POST" enctype="multipart/form-data" action="/apply">
+          <input type="hidden" name="job_id" value="{{ job.job_id }}">
+          <input type="hidden" name="recruiter_id" value="{{ job.recruiter_id }}">
+          <input type="hidden" name="designation" value="{{ job.designation }}">
+          <input type="hidden" name="company" value="{{ job.company }}">
+          <input type="hidden" name="skills_required" value="{{ job.skills_required }}">
+
+          <div id="section-personal" class="section-card">
+            <div class="card p-3">
+              <h5>Personal Information</h5>
+              <input class="form-control mb-2" name="applicant_name" placeholder="Full Name" required>
+              <!-- Remove this input or hide it -->
+              <input type="hidden" name="applicant_email" value="{{ session['user_email'] }}">
+
+            </div>
+          </div>
+
+          <div id="section-education" class="section-card">
+            <div class="card p-3">
+              <h5>Education</h5>
+              <input class="form-control mb-2" name="qualification" placeholder="Highest Qualification" required>
+              <input class="form-control mb-2" name="university" placeholder="University/College" required>
+            </div>
+          </div>
+
+          <div id="section-experience" class="section-card">
+            <div class="card p-3">
+              <h5>Experience</h5>
+              <input type="number" class="form-control mb-2" name="experience" placeholder="Years of Experience" required>
+            </div>
+          </div>
+
+          <div id="section-skills" class="section-card">
+            <div class="card p-3">
+              <h5>Skills</h5>
+              <input class="form-control mb-2" name="skills" placeholder="E.g., Python, JavaScript, SQL" required>
+            </div>
+          </div>
+
+          <div id="section-upload" class="section-card">
+            <div class="card p-3">
+              <h5>Upload Resume</h5>
+              <input type="file" name="resume" class="form-control" accept=".pdf,.doc,.docx" required>
+            </div>
+          </div>
+
+          <div class="ack-section" id="acknowledgment">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="ackCheck" onchange="toggleApplyButton()">
+              <label class="form-check-label" for="ackCheck">
+                I confirm that all the details provided are correct.
+              </label>
+            </div>
+            <button type="submit" class="btn btn-success mt-3 w-100" id="applyButton" style="display:none">Apply for Job</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="success-card" id="successCard">
+    <div class="circle-animation">
+      <svg class="checkmark" viewBox="0 0 52 52">
+        <circle class="checkmark" cx="26" cy="26" r="25" />
+        <path class="check" d="M14 27l7 7 16-16" />
+      </svg>
+    </div>
+    <h4 class="text-success">Successfully Applied!</h4>
+    <p>Your application has been saved.</p>
+    <a href="/job-search" class="btn btn-dark mt-3">Okay</a>
+  </div>
+
+  <script>
+    let sections = ['personal', 'education', 'experience', 'skills', 'upload'];
+    let completed = {};
+
+    function showSection(id) {
+      sections.forEach(s => {
+        document.getElementById('section-' + s).classList.remove('active');
+      });
+      document.getElementById('section-' + id).classList.add('active');
+      completed[id] = true;
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let count = Object.keys(completed).length;
+      let percent = Math.floor((count / sections.length) * 100);
+      let bar = document.getElementById('progressBar');
+      bar.style.width = percent + '%';
+      bar.textContent = percent + '%';
+      if (percent === 100) {
+        document.getElementById('acknowledgment').style.display = 'block';
+      }
+    }
+
+    function toggleApplyButton() {
+      const isChecked = document.getElementById('ackCheck').checked;
+      document.getElementById('applyButton').style.display = isChecked ? 'block' : 'none';
+    }
+
+    // Initially show the first section
+    showSection('personal');
+
+    {% if application_status == 'success' %}
+    document.getElementById('mainContainer').classList.add('blurred');
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('successCard').classList.add('active');
+    {% endif %}
+  </script>
+</body>
+</html>

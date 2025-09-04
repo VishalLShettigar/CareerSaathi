@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Feedback</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <style>
+    body {
+      background: url('https://images.unsplash.com/photo-1531297484001-80022131f5a1') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+    }
+
+    .card {
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      transition: all 0.4s ease-in-out;
+      animation: fadeSlideIn 0.7s ease forwards;
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card:hover {
+      transform: scale(1.015);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    .form-control, textarea {
+      border-radius: 8px;
+      border: none;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+      transition: box-shadow 0.3s;
+    }
+
+    .form-control:focus {
+      box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+    }
+
+    .star {
+      font-size: 32px;
+      color: #ddd;
+      cursor: pointer;
+      transition: transform 0.3s, color 0.3s;
+    }
+
+    .star:hover {
+      transform: scale(1.2);
+    }
+
+    .star.checked {
+      color: #ffc107;
+    }
+
+    .success-overlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 999;
+      text-align: center;
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.3);
+      animation: popIn 0.4s ease-in-out;
+    }
+
+    .checkmark-circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 4px solid #28a745;
+      position: relative;
+      margin: 0 auto;
+      animation: zoom 0.6s ease-out;
+    }
+
+    .checkmark-circle::after {
+      content: '';
+      position: absolute;
+      width: 25px;
+      height: 50px;
+      border-right: 4px solid #28a745;
+      border-bottom: 4px solid #28a745;
+      transform: rotate(45deg);
+      top: 14px;
+      left: 30px;
+      animation: draw 0.4s 0.3s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes draw { to { opacity: 1; } }
+    @keyframes zoom { from { transform: scale(0); } to { transform: scale(1); } }
+    @keyframes popIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .btn-success {
+      transition: all 0.3s ease;
+    }
+
+    .btn-success:hover {
+      background-color: #218838;
+      transform: scale(1.02);
+    }
+
+    textarea {
+      resize: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-5">
+        <div id="feedbackCard" class="card p-2">
+          <h3 class="text-center text-white mb-4">Give Us Your Feedback</h3>
+          <form id="feedbackForm">
+            <div class="mb-3">
+              <label class="text-white">Name</label>
+              <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="text-white">Email</label>
+              <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="text-white">Experience</label>
+              <textarea name="experience" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="text-white">Who are you?</label><br>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="user_type" value="User" required>
+                <label class="form-check-label text-white">User</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="user_type" value="Recruiter" required>
+                <label class="form-check-label text-white">Recruiter</label>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="text-white">Suggestions</label>
+              <textarea name="suggestions" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="text-white">Rating</label><br>
+              <input type="hidden" name="rating" id="ratingValue" required>
+              <span class="star" data-value="1">&#9733;</span>
+              <span class="star" data-value="2">&#9733;</span>
+              <span class="star" data-value="3">&#9733;</span>
+              <span class="star" data-value="4">&#9733;</span>
+              <span class="star" data-value="5">&#9733;</span>
+            </div>
+            <button type="submit" class="btn btn-success w-100 mt-3">Submit Feedback</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div id="successCard" class="success-overlay d-none">
+    <div class="checkmark-circle"></div>
+    <h4 class="mt-4">Thank you for your feedback!</h4>
+    <button class="btn btn-primary mt-3" onclick="window.location.href='/'">Okay</button>
+  </div>
+
+  <script>
+    const stars = document.querySelectorAll('.star');
+    const ratingInput = document.getElementById('ratingValue');
+
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        const rating = star.getAttribute('data-value');
+        ratingInput.value = rating;
+        stars.forEach(s => {
+          s.classList.remove('checked');
+          if (s.getAttribute('data-value') <= rating) {
+            s.classList.add('checked');
+          }
+        });
+      });
+    });
+
+    document.getElementById('feedbackForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!ratingInput.value) {
+        alert('Please select a rating.');
+        return;
+      }
+
+      const formData = new FormData(this);
+      const formJSON = Object.fromEntries(formData.entries());
+
+      const response = await fetch("/feedback", {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formJSON)
+      });
+
+      if (response.ok) {
+        document.getElementById('feedbackCard').classList.add('blur');
+        document.getElementById('successCard').classList.remove('d-none');
+      } else {
+        alert('Failed to submit feedback.');
+      }
+    });
+  </script>
+</body>
+</html>

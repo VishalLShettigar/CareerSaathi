@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareerSaathi Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg,#fc9a9a, #6ee7b7, #9ac0fc, #bf86f4,#9cf486,#fc56ca);
+      background-size: 300% 300%;
+      animation: gradientBG 12s ease infinite;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .chat-bubble { animation: fadeInUp 0.4s ease both; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chat-img {
+      max-width: 240px;
+      border-radius: 14px;
+      margin-top: 8px;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .chat-img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+    }
+
+    .typing-dots span {
+      display: inline-block;
+      width: 7px; height: 7px;
+      margin: 0 2px; background: #555;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Sidebar Animations */
+    .sidebar-item {
+      transition: all 0.25s ease;
+    }
+    .sidebar-item:hover {
+      transform: translateX(4px) scale(1.02);
+      background: rgba(59,130,246,0.15);
+    }
+
+    /* Dark Mode */
+    .dark body { background: #0f172a; }
+    .dark .chat-container { background: rgba(30,41,59,0.85); }
+    .dark .chat-bubble-ai { background: #334155 !important; color: #f1f5f9; }
+    .dark .chat-bubble-user { background: #2563eb !important; color: white; }
+    .dark .chat-sidebar { background: #1e293b; color: #f1f5f9; }
+  </style>
+</head>
+<body class="flex items-center justify-center p-6">
+
+  <div class="flex w-full max-w-7xl h-[85vh] bg-white/60 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-gray-200 transition-all chat-container">
+
+    <!-- Sidebar (Conversation List) -->
+    <aside class="hidden md:flex flex-col w-1/4 chat-sidebar border-r border-gray-200 dark:border-slate-700 p-4 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Conversations</h2>
+        <button id="new-chat" class="text-sm px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow hover:scale-105 transition">+ New</button>
+      </div>
+      <div id="conversation-list" class="space-y-3"></div>
+    </aside>
+
+    <!-- Chat Area -->
+    <div class="flex flex-col flex-1">
+      <!-- Header -->
+      <header class="bg-gradient-to-r from-red-400 to-orange-400 text-white p-5 shadow-lg flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">CareerSaathi Chatbot</h1>
+          <p class="text-sm opacity-90">Your AI Career Assistant 🚀</p>
+        </div>
+        <!-- Dark Mode Toggle -->
+        <button id="theme-toggle" class="px-3 py-2 bg-white/50 rounded-lg hover:bg-white/70 transition">🌙</button>
+      </header>
+
+      <!-- Chat History -->
+      <main id="chat-history" class="flex-grow p-6 overflow-y-auto space-y-5 bg-gray-50 dark:bg-slate-900">
+        <div class="flex justify-start chat-bubble">
+          <div class="p-4 rounded-2xl shadow-md max-w-xs md:max-w-md bg-gray-200 text-gray-800 dark:bg-slate-700 dark:text-slate-100">
+            <p>Hello 👋! How can I assist you today?</p>
+          </div>
+        </div>
+      </main>
+
+      <!-- Typing Indicator -->
+      <div id="loading-indicator" class="hidden px-6 py-3 text-gray-600 dark:text-gray-300">
+        <div class="typing-dots flex"><span></span><span></span><span></span></div>
+      </div>
+
+      <!-- Input -->
+      <form id="chat-form" class="p-5 border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex space-x-3 items-center shadow-inner">
+        <input type="text" id="user-input" placeholder="Type your message or use voice 🎤..." class="flex-grow p-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm bg-white dark:bg-slate-700 dark:text-slate-100">
+        <button type="button" id="voice-btn" class="bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-200 px-4 py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-slate-500 transition shadow-sm">🎙️</button>
+        <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:scale-105 transition shadow-md">Send ➤</button>
+      </form>
+    </div>
+  </div>
+
+ <script>
+/*
+  Simplified Chat Script
+  - Conversations stored in sessionStorage (clears when tab is closed)
+  - Each conversation has id, title, messages
+  - Sidebar shows conversation list
+  - New chat starts a fresh conversation
+  - First user message sets the conversation title
+  - Fetches replies from backend (/chat)
+  - Voice recognition included
+*/
+
+const form = document.getElementById('chat-form');
+const chatHistory = document.getElementById('chat-history');
+const userInput = document.getElementById('user-input');
+const loadingIndicator = document.getElementById('loading-indicator');
+const conversationList = document.getElementById('conversation-list');
+const newChatBtn = document.getElementById('new-chat');
+const themeToggle = document.getElementById('theme-toggle');
+const voiceBtn = document.getElementById('voice-btn');
+
+const STORAGE_KEY = "careersaathi_conversations";
+
+let conversations = [];            
+let selectedConversationId = null;
+
+// ---------- Utilities ----------
+function saveConversationsToStorage() {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+}
+
+function loadConversationsFromStorage() {
+  const raw = sessionStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  conversations = JSON.parse(raw);
+  return Array.isArray(conversations);
+}
+
+function genId() {
+  return Date.now().toString(36) + '-' + Math.floor(Math.random()*10000).toString(36);
+}
+
+function truncateText(s, n=28) {
+  return s && s.length > n ? s.slice(0, n) + '...' : s;
+}
+
+// ---------- Conversation management ----------
+function createConversation(initialText = "✨ New conversation started. How can I help?") {
+  const id = genId();
+  const convo = {
+    id,
+    title: 'New chat',
+    messages: [{ role: 'ai', content: initialText }]
+  };
+  conversations.unshift(convo);
+  selectedConversationId = id;
+  saveConversationsToStorage();
+  renderConversationList();
+  loadConversation(id);
+}
+
+function renderConversationList() {
+  conversationList.innerHTML = '';
+  conversations.forEach(convo => {
+    const item = document.createElement('div');
+    item.className = "p-3 sidebar-item bg-white dark:bg-slate-700 border rounded-lg shadow cursor-pointer flex items-center justify-between";
+    item.dataset.convoId = convo.id;
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = "text-sm font-medium truncate";
+    titleDiv.innerText = convo.title;
+
+    const left = document.createElement('div');
+    left.className = "flex-1";
+    left.appendChild(titleDiv);
+
+    const renameBtn = document.createElement('button');
+    renameBtn.className = "ml-3 text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200";
+    renameBtn.textContent = "✏️";
+    renameBtn.title = "Rename conversation";
+    renameBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const newName = prompt('Rename conversation', convo.title);
+      if (newName) {
+        convo.title = newName.trim();
+        saveConversationsToStorage();
+        renderConversationList();
+      }
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = "ml-2 text-xs px-2 py-1 rounded bg-red-50 hover:bg-red-100 text-red-600";
+    deleteBtn.textContent = "🗑";
+    deleteBtn.title = "Delete conversation";
+    deleteBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!confirm('Delete this conversation?')) return;
+      conversations = conversations.filter(c => c.id !== convo.id);
+      if (selectedConversationId === convo.id) {
+        if (conversations.length) {
+          selectedConversationId = conversations[0].id;
+          loadConversation(selectedConversationId);
+        } else {
+          createConversation();
+        }
+      }
+      saveConversationsToStorage();
+      renderConversationList();
+    });
+
+    item.appendChild(left);
+    const rightControls = document.createElement('div');
+    rightControls.className = "flex items-center";
+    rightControls.appendChild(renameBtn);
+    rightControls.appendChild(deleteBtn);
+    item.appendChild(rightControls);
+
+    item.addEventListener('click', () => setActiveConversation(convo.id));
+
+    if (convo.id === selectedConversationId) {
+      item.classList.add('ring-2', 'ring-blue-300');
+    }
+
+    conversationList.appendChild(item);
+  });
+}
+
+function setActiveConversation(id) {
+  const convo = conversations.find(c => c.id === id);
+  if (!convo) return;
+  selectedConversationId = id;
+  loadConversation(id);
+  renderConversationList();
+}
+
+function loadConversation(id) {
+  const convo = conversations.find(c => c.id === id);
+  if (!convo) return;
+  chatHistory.innerHTML = '';
+  convo.messages.forEach(m => appendMessage(m.role, m.content));
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+// ---------- Rendering messages ----------
+function appendMessage(sender, message) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = `p-4 rounded-2xl shadow-md max-w-xs md:max-w-md ${
+    sender === 'user' ? 'bg-blue-600 text-white' :
+    sender === 'error' ? 'bg-red-100 text-red-700 border border-red-200' :
+    'bg-gray-200 text-gray-800'
+  }`;
+
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const formatted = (message || '').replace(urlRegex, url => {
+    if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+      return `<a href="${url}" target="_blank"><img src="${url}" class="chat-img" /></a>`;
+    }
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+      return `<a href="${url}" target="_blank" class="text-red-600 font-semibold underline">🎬 Watch on YouTube</a>`;
+    }
+    return `<a href="${url}" target="_blank" class="text-blue-600 font-medium underline">${url}</a>`;
+  });
+
+  bubble.innerHTML = formatted;
+  messageDiv.appendChild(bubble);
+  chatHistory.appendChild(messageDiv);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+// ---------- Send message handler ----------
+async function sendMessage(messageText) {
+  if (!messageText) return;
+  if (!selectedConversationId) createConversation();
+
+  const convo = conversations.find(c => c.id === selectedConversationId);
+  if (!convo) return;
+
+  convo.messages.push({ role: 'user', content: messageText });
+  appendMessage('user', messageText);
+
+  if (convo.title === 'New chat') {
+    convo.title = truncateText(messageText, 28);
+    saveConversationsToStorage();
+    renderConversationList();
+  }
+
+  saveConversationsToStorage();
+
+  loadingIndicator.classList.remove('hidden');
+  try {
+    const resp = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: messageText })
+    });
+
+    const data = await resp.json();
+    const reply = data.reply || "I couldn't get a response.";
+    convo.messages.push({ role: 'ai', content: reply });
+    appendMessage('ai', reply);
+    saveConversationsToStorage();
+  } catch {
+    appendMessage('error', 'Network or server error. Please try again.');
+  } finally {
+    loadingIndicator.classList.add('hidden');
+  }
+}
+
+// ---------- UI wiring ----------
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const msg = userInput.value.trim();
+  if (!msg) return;
+  userInput.value = '';
+  sendMessage(msg);
+});
+
+newChatBtn.addEventListener('click', () => createConversation());
+
+// ---------- Init ----------
+(function init() {
+  if (loadConversationsFromStorage() && conversations.length) {
+    selectedConversationId = conversations[0].id;
+    renderConversationList();
+    loadConversation(selectedConversationId);
+  } else {
+    createConversation();
+  }
+})();
+
+// ---------- Voice Recognition ----------
+let recognition;
+if ('webkitSpeechRecognition' in window) {
+  recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    voiceBtn.innerText = "🎙️";
+    voiceBtn.classList.add("bg-red-500", "text-white");
+  };
+  recognition.onend = () => {
+    voiceBtn.innerText = "🎤";
+    voiceBtn.classList.remove("bg-red-500", "text-white");
+  };
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    userInput.value = transcript;
+    form.dispatchEvent(new Event('submit'));
+  };
+
+  voiceBtn.addEventListener('click', () => recognition.start());
+} else {
+  voiceBtn.disabled = true;
+  voiceBtn.title = "Voice input not supported.";
+}
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!-- templates/footer.html -->
+<style>
+  footer {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    background: #222;
+    height: 50px;
+    margin-top: 30px;
+  }
+  .moving-footer {
+    position: absolute;
+    white-space: nowrap;
+    animation: slide 10s linear infinite, colorChange 5s ease-in-out infinite;
+    font-size: 1rem;
+    padding: 15px;
+    color: white;
+  }
+  @keyframes slide {
+    0% { left: 100%; }
+    100% { left: -100%; }
+  }
+  @keyframes colorChange {
+    0% { color: #ff7675; }
+    25% { color: #74b9ff; }
+    50% { color: #55efc4; }
+    75% { color: #ffeaa7; }
+    100% { color: #fd79a8; }
+  }
+</style>
+
+<footer>
+  <div class="moving-footer">
+    🚀 AI-Based Career Counselor | MCA Final Year Project | Made with ❤️ by Vishal L Shettigar
+  </div>
+</footer>

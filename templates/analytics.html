@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Analytics Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #f5f7fa;
+      padding: 40px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .card {
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    .form-check-label {
+      cursor: pointer;
+    }
+    .chart-container {
+      height: 550px;
+    }
+    canvas {
+      max-height: 500px !important;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 class="text-center mb-4">📊 Analytics Dashboard</h2>
+  <div class="row">
+    <div class="col-md-4">
+      <div class="card p-4">
+        <h5>Select Chart Type</h5>
+        <div class="form-check mt-2"><input class="form-check-input" type="radio" name="chartType" value="bar" checked> <label class="form-check-label">Bar Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="line"> <label class="form-check-label">Line Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="pie"> <label class="form-check-label">Pie Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="doughnut"> <label class="form-check-label">Donut Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="polarArea"> <label class="form-check-label">Area Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="scatter"> <label class="form-check-label">Scatter Plot</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="bubble"> <label class="form-check-label">Bubble Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="radar"> <label class="form-check-label">Triangular Chart</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="chartType" value="bar"> <label class="form-check-label">Histogram</label></div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="card p-4 chart-container">
+        <h5 class="text-center">Chart</h5>
+        <canvas id="analyticsChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const userCount = {{ user_count }};
+  const recruiterCount = {{ recruiter_count }};
+  const jobCount = {{ job_count }};
+
+  const ctx = document.getElementById('analyticsChart').getContext('2d');
+  let chart;
+
+  function getChartConfig(type) {
+    if (type === 'scatter') {
+      return {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Users',
+              data: [{ x: 1, y: userCount }],
+              backgroundColor: '#4e73df'
+            },
+            {
+              label: 'Recruiters',
+              data: [{ x: 2, y: recruiterCount }],
+              backgroundColor: '#1cc88a'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          }
+        }
+      };
+    }
+
+    if (type === 'bubble') {
+      return {
+        type: 'bubble',
+        data: {
+          datasets: [
+            {
+              label: 'Users',
+              data: [{ x: 1, y: userCount, r: 10 }],
+              backgroundColor: '#4e73df'
+            },
+            {
+              label: 'Recruiters',
+              data: [{ x: 2, y: recruiterCount, r: 10 }],
+              backgroundColor: '#1cc88a'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      };
+    }
+
+    // Default for others
+    return {
+      type: type,
+      data: {
+        labels: ['Users', 'Recruiters', 'Jobs'],
+        datasets: [{
+          label: 'Counts',
+          data: [userCount, recruiterCount, jobCount],
+          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc'],
+          borderColor: ['#4e73df', '#1cc88a', '#36b9cc'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    };
+  }
+
+  function renderChart(type) {
+    if (chart) chart.destroy();
+    const config = getChartConfig(type);
+    chart = new Chart(ctx, config);
+  }
+
+  // Default chart
+  renderChart('bar');
+
+  document.querySelectorAll('input[name="chartType"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      renderChart(radio.value);
+    });
+  });
+</script>
+<div class="d-flex justify-content-start gap-2">
+  <a href="/admin-dashboard" class="btn btn-info">🔙 Back</a>
+  <a href="/download-db" class="btn btn-dark">📥 Download User Database</a>
+</div>
+
+     
+</body>
+</html>
