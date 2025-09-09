@@ -791,7 +791,7 @@ def apply():
             filename = secure_filename(resume.filename)
             resume_path = f"resumes/{filename}"
             resume.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
+            current_time = datetime.datetime.now()
             conn = get_db_connection()
             cursor = conn.cursor()
             query = """
@@ -804,7 +804,7 @@ def apply():
             values = (
                 session.get('user_id'), applicant_name, applicant_email, qualification, university,
                 experience, skills, resume_path, recruiter_id, job_id,
-                datetime.now(), 'pending'
+                current_time, 'pending'
             )
             cursor.execute(query, values)
             conn.commit()
@@ -835,6 +835,9 @@ def apply():
     return render_template('apply.html', job=job, application_status=None, resume_error=None)
 
 # -------------------- Recruiter: View Applications --------------------
+from collections import defaultdict
+import math
+
 @app.route('/view-applications')
 def view_applications():
     recruiter_id = session.get('recruiter_id')
@@ -843,6 +846,7 @@ def view_applications():
 
     action_status = request.args.get('action_status')
     apply_filter = request.args.get('filter') == 'true'
+    required_skill_filter = request.args.get('skill', '').strip().lower()  # e.g., "java"
     page = request.args.get('page', 1, type=int)
     per_page = 3
 
@@ -864,20 +868,36 @@ def view_applications():
     for app_row in applications:
         comp = app_row['company']
         desg = app_row['designation']
-        required_skills = app_row['skills_required'].lower().split(',') if app_row['skills_required'] else []
-        user_skills = app_row['skills'].lower().split(',') if app_row['skills'] else []
-        matched_skills = set(s.strip() for s in required_skills).intersection(
-            set(s.strip() for s in user_skills)
-        )
-        eligible = len(matched_skills) >= 2
 
+        # Normalize skills
+        required_skills = set(s.strip().lower() for s in (app_row['skills_required'] or "").split(","))
+        user_skills = set(s.strip().lower() for s in (app_row['skills'] or "").split(","))
+
+        # Check matched skills
+        matched_skills = required_skills.intersection(user_skills)
+
+        # Determine eligibility
+        eligible = False
+
+        # If required skill filter is set, check if candidate has it
+        if required_skill_filter:
+            if required_skill_filter in user_skills:
+                eligible = True  # candidate has the filtered skill
+        else:
+            # Default eligibility: at least 2 matched skills
+            if len(matched_skills) >= 2:
+                eligible = True
+
+        # Update counts
         company_counts[comp][desg]['total'] += 1
         if eligible:
             company_counts[comp][desg]['eligible'] += 1
 
+        # Append to group if eligible or if filtering not applied
         if not apply_filter or eligible:
             company_groups[comp][desg].append(app_row)
 
+    # Pagination
     all_companies = list(company_groups.keys())
     total_pages = math.ceil(len(all_companies) / per_page) if all_companies else 1
     start = (page - 1) * per_page
@@ -895,8 +915,10 @@ def view_applications():
         page=page,
         total_pages=total_pages,
         apply_filter=apply_filter,
-        action_status=action_status
+        action_status=action_status,
+        required_skill_filter=required_skill_filter
     )
+
 
 @app.route('/shortlist-application/<int:app_id>', methods=['POST'])
 def shortlist_application(app_id):
