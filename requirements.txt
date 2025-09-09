@@ -16,7 +16,7 @@ bcrypt
 flask-bcrypt
 pytesseract
 wikipedia
-
+requests
 
 
 

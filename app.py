@@ -1365,6 +1365,68 @@ def chat():
     reply_text = ask_gemini(prompt)
     return jsonify({"reply": reply_text, "links": links})
 
+from flask import Flask, request, jsonify, render_template
+import smtplib, os
+from email.message import EmailMessage
+
+# ---------------- Email Config ---------------- #
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
+# 🔑 For local testing, hardcode. For production, use os.getenv.
+SMTP_USER = "vishalshettigar0724@gmail.com"
+SMTP_PASS = "rarz rrfp dfzq wlwn"
+
+# ---------------- Routes ---------------- #
+
+@app.route("/email")
+def email_page():
+    """Simple form page for sending emails"""
+    return render_template("email.html")
+
+@app.route("/send_email", methods=["POST"])
+def send_email():
+    """Send email with optional resume or uploaded attachment"""
+    try:
+        # Support both JSON + Form
+        data = request.form or request.get_json() or {}
+        to_email = data.get("to_email")
+        subject = data.get("subject", "CareerSaathi Information")
+        body = data.get("body", "")
+
+        if not to_email or not body:
+            return jsonify({"error": "to_email and body required"}), 400
+
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = SMTP_USER
+        msg["To"] = to_email
+        msg.set_content(body)
+
+
+        # ✅ Case 2: Handle file uploaded via form
+        if "attachment" in request.files:
+            file = request.files["attachment"]
+            if file and file.filename:
+                file_content = file.read()
+                msg.add_attachment(
+                    file_content,
+                    maintype="application",
+                    subtype="octet-stream",
+                    filename=file.filename
+                )
+
+        # ✅ Send email via Gmail SMTP
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+
+        return jsonify({"status": "sent"})
+    except Exception as e:
+        print("Email Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
 
 
 

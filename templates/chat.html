@@ -378,6 +378,9 @@ if ('webkitSpeechRecognition' in window) {
   voiceBtn.disabled = true;
   voiceBtn.title = "Voice input not supported.";
 }
+themeToggle.addEventListener("click", () => {
+  document.documentElement.classList.toggle("dark"); // 👈 toggle on <html>
+});
 </script>
 
 
