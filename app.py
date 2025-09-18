@@ -1145,7 +1145,7 @@ def send_message():
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (sender_id, sender_type, receiver_id, receiver_type, message,
-         datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     )
     conn.commit()
     conn.close()
@@ -1183,14 +1183,37 @@ def _gcs_call(params: dict):
     except Exception as e:
         print("Google Search Error:", e)
         return []
-
-def google_search_web(query: str, site: str | None = None, num: int = 5):
+def build_prompt(user_q: str, links: list[dict]) -> str:
+    context = []
+    for i, it in enumerate(links, 1):
+        context.append(
+            f"[{i}] {it.get('title','Untitled')}\n"
+            f"URL: {it.get('link','')}\n"
+            f"Snippet: {it.get('snippet','')}\n"
+        )
+    context_text = "\n".join(context)
+    today = datetime.datetime.now().strftime("%B %d, %Y")
+    return (
+        f"Today is {today}.\n"
+        f"User question: \"{user_q}\".\n"
+        f"Use ONLY the following live web snippets to answer.\n"
+        f"List sources with their URLs. If something is unclear, say so.\n\n"
+        f"{context_text}"
+    )  
+    
+def google_search_web(query: str, site: str | None = None, num: int = 6):
     """
-    General web search. Optionally constrain to a site (e.g., 'youtube.com').
+    Real-time Google Custom Search with freshness.
     Returns a list of dicts: {title, link, snippet, displayLink}
     """
     q = query if not site else f"site:{site} {query}"
-    items = _gcs_call({"q": q, "num": num})
+    items = _gcs_call({
+        "q": q,
+        "num": num,
+        "sort": "date",          # ✅ Ask for newest first
+        "dateRestrict": "m1",    # ✅ Restrict to last month (m1 = 1 month)
+        "safe": "active"
+    })
     results = []
     for it in items:
         results.append({
@@ -1200,6 +1223,8 @@ def google_search_web(query: str, site: str | None = None, num: int = 5):
             "displayLink": it.get("displayLink")
         })
     return results
+
+
 
 def google_search_images(query: str, num: int = 4):
     """
@@ -1276,6 +1301,9 @@ def is_youtube_query(text: str) -> bool:
 def chatbot():
     return render_template('chat.html')
     
+from urllib.parse import quote_plus
+import re
+
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json() or {}
@@ -1284,108 +1312,154 @@ def chat():
         return jsonify({"error": "Message required"}), 400
 
     normalized = user_message.lower()
-
-    # 🎯 Step 0: Rule-based identity responses
-    if "who are you" in normalized or "what is your name" in normalized:
-        reply = "🤖 I’m CareerSaathi Chatbot, your AI career assistant. I can guide you with resumes, jobs, and career advice."
-        return jsonify({"reply": reply})
-
-    if "who made you" in normalized or "who created you" in normalized or "who developed you" in normalized:
-        reply = "👨‍💻 I was created by Vishal L Shettigar."
-        return jsonify({"reply": reply})
-
-    if "what can you do" in normalized or "what is your purpose" in normalized:
-        reply = "⚡ I can analyze resumes, suggest careers, fetch the latest job trends, and share verified links and images."
-        return jsonify({"reply": reply})
-
     today = datetime.datetime.now().strftime("%B %d, %Y")
 
-    # 🖼️ If the user asks for images → use image search
+    # --- quick identity responses ---
+    if "who are you" in normalized or "what is your name" in normalized:
+        return jsonify({"reply": "🤖 I’m CareerSaathi Chatbot, your AI career assistant."})
+    if any(k in normalized for k in ["who made you", "who created you", "who developed you"]):
+        return jsonify({"reply": "👨‍💻 I was created by Vishal L Shettigar."})
+    if any(k in normalized for k in ["what can you do", "what is your purpose"]):
+        return jsonify({"reply": "⚡ I analyze resumes, suggest careers, fetch job trends, and share verified links and images."})
+
+    # --- image queries ---
     if is_image_query(user_message):
-        images = google_search_images(user_message)
+        try:
+            images = google_search_images(user_message)
+        except Exception as e:
+            print("Image search error:", e)
+            images = []
         if images:
-            # Optional: also summarize what the images are about
-            ctx_lines = [f"- {img['title'] or 'Image'} ({img['url']})" for img in images]
-            context = "\n".join(ctx_lines)
+            ctx = "\n".join([f"- {i.get('title','Image')} ({i.get('url')})" for i in images])
             prompt = (
-                f"Today is {today}.\n"
-                f"User asked for images: \"{user_message}\".\n"
-                f"Here are image links found:\n{context}\n\n"
-                f"Write a brief helpful caption (2-3 lines) for the user. Do not invent facts."
+                f"Today is {today}.\nUser asked for images: \"{user_message}\".\n"
+                f"Image links:\n{ctx}\n\nWrite a short 2-3 line caption for the user."
             )
             reply_text = ask_gemini(prompt)
-            # Return images + text
-            return jsonify({
-                "reply": reply_text,
-                "images": images  # [{url, context, title}, ...]
-            })
-        else:
-            # fallback to web + summary if no images
-            links = google_search_web(user_message)
-            if not links:
-                wiki = wikipedia_fallback(user_message)
-                if not wiki:
-                    return jsonify({"reply": "I couldn’t find images right now."})
-                prompt = (
-                    f"Today is {today}. The user asked: '{user_message}'.\n"
-                    f"Here is some context from Wikipedia:\n{wiki}\n\n"
-                    f"Provide a concise helpful answer."
-                )
-                return jsonify({"reply": ask_gemini(prompt)})
-            context = build_search_context(links)
-            prompt = (
-                f"Today is {today}. The user asked: '{user_message}'.\n"
-                f"Here are search results:\n{context}\n\n"
-                f"Provide a concise helpful answer and reference useful links."
-            )
-            return jsonify({"reply": ask_gemini(prompt), "links": links})
+            return jsonify({"reply": reply_text, "images": images})
+        # fallback continue to web search below if no images
 
-    # ▶️ If the user asks for YouTube/videos → constrain the search to YouTube
-    if is_youtube_query(user_message):
-        yt_links = google_search_web(user_message, site="youtube.com", num=5)
+    # --- YouTube/video queries (robust) ---
+    # Treat as YouTube intent if explicit or contains video/song/lyrics/link triggers
+    yt_triggers = ["youtube", "video", "watch", "tutorial", "playlist", "song", "lyrics", "music", "track", "mv", "lyric"]
+    is_explicit_yt = is_youtube_query(user_message) or any(t in normalized for t in yt_triggers) or ("link" in normalized and ("song" in normalized or "video" in normalized))
+
+    if is_explicit_yt:
+        # 1) Try targeted YouTube-only search
+        try:
+            yt_links = google_search_web(user_message, site="youtube.com", num=8)
+        except Exception as e:
+            print("YouTube site search error:", e)
+            yt_links = []
+
         if yt_links:
-            context = build_search_context(yt_links)
+            # Build assistant prompt summarizing results and ask Gemini to recommend top 3
+            context = build_search_context(yt_links[:6])
             prompt = (
                 f"Today is {today}. The user asked: '{user_message}'.\n"
-                f"These are YouTube results:\n{context}\n\n"
-                f"Recommend the most relevant 3 with one-line reasons."
+                f"These YouTube results were found:\n{context}\n\n"
+                "Recommend the most relevant 3 results with one-line reasons each and include their URLs."
             )
-            reply_text = ask_gemini(prompt)
-            return jsonify({"reply": reply_text, "links": yt_links})
-        # fallback to general web if no YouTube
-        links = google_search_web(user_message, num=5)
-        if links:
-            context = build_search_context(links)
-            prompt = (
-                f"Today is {today}. The user asked: '{user_message}'.\n"
-                f"Here are web results:\n{context}\n\n"
-                f"Provide a concise helpful answer and include references."
-            )
-            return jsonify({"reply": ask_gemini(prompt), "links": links})
+            # try Gemini; if it fails, still return the links so user can click
+            try:
+                reply_text = ask_gemini(prompt)
+            except Exception:
+                reply_text = "Here are some YouTube results I found."
+            return jsonify({"reply": reply_text, "links": yt_links[:3]})
 
-    # 🌐 Otherwise: general web search → Gemini summary
-    links = google_search_web(user_message, num=5)
-    if not links:
-        # Wikipedia fallback
-        wiki = wikipedia_fallback(user_message)
-        if not wiki:
-            return jsonify({"reply": "I couldn’t find relevant information right now."})
+        # 2) No direct youtube.com results — search general web and filter any youtube links
+        try:
+            general = google_search_web(user_message, num=10)
+        except Exception as e:
+            print("General search for youtube fallback error:", e)
+            general = []
+
+        youtube_hits = []
+        for item in general:
+            link = (item.get("link") or "").lower()
+            display = (item.get("displayLink") or "").lower()
+            if "youtube.com" in link or "youtu.be" in link or "youtube.com" in display:
+                youtube_hits.append(item)
+
+        if youtube_hits:
+            ctx = build_search_context(youtube_hits[:6])
+            prompt = (
+                f"Today is {today}. The user asked: '{user_message}'.\n"
+                f"These web results include YouTube links:\n{ctx}\n\n"
+                "Recommend the top 3 and include URLs."
+            )
+            try:
+                reply_text = ask_gemini(prompt)
+            except Exception:
+                reply_text = "I found some YouTube links inside web results — see below."
+            return jsonify({"reply": reply_text, "links": youtube_hits[:3]})
+
+        # 3) final fallback: give a YouTube search URL so the user can click
+        yt_search_url = "https://www.youtube.com/results?search_query=" + quote_plus(user_message)
+        reply_text = f"I couldn't fetch direct YouTube results via the API — try this YouTube search for \"{user_message}\": {yt_search_url}"
+        return jsonify({"reply": reply_text, "links": [{"title": f"YouTube search: {user_message}", "link": yt_search_url}]})
+
+    # --- General knowledge queries ---
+    try:
+        links = google_search_web(user_message, num=6)
+    except Exception as e:
+        print("Google search error:", e)
+        links = []
+
+    # Try wikipedia summary (safe fallback)
+    wiki_summary = ""
+    try:
+        wiki_summary = wikipedia.summary(user_message, sentences=3, auto_suggest=True)
+    except wikipedia.DisambiguationError as d:
+        try:
+            wiki_summary = wikipedia.summary(d.options[0], sentences=3, auto_suggest=True)
+        except Exception:
+            wiki_summary = ""
+    except Exception as e:
+        print("Wikipedia lookup error:", e)
+        wiki_summary = ""
+
+    # If we have web links, use them as the primary live context for the LLM
+    if links:
+        context = build_search_context(links)
         prompt = (
-            f"Today is {today}. The user asked: '{user_message}'.\n"
-            f"Here is context from Wikipedia:\n{wiki}\n\n"
-            f"Provide a concise helpful answer."
+            f"Today is {today}.\nUser question: \"{user_message}\".\n"
+            f"Use ONLY the following live web snippets to answer accurately and concisely. Cite 1-3 URLs from the list when relevant.\n\n"
+            f"{context}\n\nAnswer now."
         )
-        return jsonify({"reply": ask_gemini(prompt)})
+        try:
+            reply_text = ask_gemini(prompt)
+        except Exception as e:
+            print("Gemini error on web-context prompt:", e)
+            reply_text = "I’m having trouble generating a detailed answer right now — here are some links I found."
+        return jsonify({"reply": reply_text, "links": links})
 
-    # Summarize with Gemini with the links as context
-    context = build_search_context(links)
-    prompt = (
-        f"Today is {today}. The user asked: '{user_message}'.\n"
-        f"Here are top search results:\n{context}\n\n"
-        f"Provide a concise, well-structured answer. If you reference items, use the URLs provided without inventing new ones."
+    # If no web links but we have Wikipedia context, use it
+    if wiki_summary:
+        prompt = (
+            f"Today is {today}.\nUser question: \"{user_message}\".\n"
+            f"Wikipedia excerpt:\n{wiki_summary}\n\n"
+            "Provide a concise, factual answer based on this."
+        )
+        try:
+            reply_text = ask_gemini(prompt)
+        except Exception as e:
+            print("Gemini error on wiki-context prompt:", e)
+            reply_text = wiki_summary or "I couldn't generate a detailed answer from Wikipedia at the moment."
+        return jsonify({"reply": reply_text})
+
+    # Final fallback — ask Gemini to answer generally (may be less up-to-date)
+    fallback_prompt = (
+        f"Today is {today}.\nUser question: \"{user_message}\".\n"
+        "No live web results were available via the search API. Please provide a concise and helpful general answer, and indicate if you are unsure."
     )
-    reply_text = ask_gemini(prompt)
-    return jsonify({"reply": reply_text, "links": links})
+    try:
+        reply_text = ask_gemini(fallback_prompt)
+    except Exception as e:
+        print("Gemini final fallback error:", e)
+        reply_text = "Sorry — I'm temporarily unable to fetch live answers. Please try again later."
+    return jsonify({"reply": reply_text})
+
 
 from flask import Flask, request, jsonify, render_template
 import smtplib, os
