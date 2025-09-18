@@ -59,19 +59,23 @@ def index():
         flash("Please login to continue.", "warning")
         return redirect('/login')
 
+# User registration
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        name = request.form['name'].strip()
         username = request.form['username'].strip()
         email = request.form['email'].strip()
         password = request.form['password']
+
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-                (username, email, hashed_pw)
+                "INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)",
+                (name, username, email, hashed_pw)
             )
             conn.commit()
             flash("Registration successful! Please login.", "success")
@@ -82,19 +86,23 @@ def register():
             conn.close()
     return render_template('register.html')
 
+# Recruiter registration
 @app.route('/recruiter-register', methods=['GET', 'POST'])
 def recruiter_register():
     if request.method == 'POST':
         username = request.form['username'].strip()
+        company = request.form['company'].strip()
         email = request.form['email'].strip()
         password = request.form['password']
+
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "INSERT INTO recruiter (username, email, password) VALUES (?, ?, ?)",
-                (username, email, hashed_pw)
+                "INSERT INTO recruiter (username, company, email, password) VALUES (?, ?, ?, ?)",
+                (username, company, email, hashed_pw)
             )
             conn.commit()
             flash("Recruiter registration successful! Please login.", "success")

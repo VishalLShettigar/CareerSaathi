@@ -5,27 +5,30 @@ def create_tables():
     cursor = conn.cursor()
 
     # --- Drop old apply table (ONLY if exists, for dev) ---
-    cursor.execute("DROP TABLE IF EXISTS chat_history")
-
+    cursor.execute("DROP TABLE IF EXISTS users")
+    cursor.execute("DROP TABLE IF EXISTS recruiter")
     # users table
+# Users table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            email TEXT,
-            password TEXT
-        )
-    ''')
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL,
+        password TEXT NOT NULL
+    )
+''')
 
-    # recruiter table
+# Recruiter table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS recruiter (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            email TEXT,
-            password TEXT
-        )
-    ''')
+    CREATE TABLE IF NOT EXISTS recruiter (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL,
+        password TEXT NOT NULL,
+        company TEXT
+    )
+''')
 
     # owner table
     cursor.execute('''
