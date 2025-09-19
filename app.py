@@ -59,15 +59,27 @@ def index():
         flash("Please login to continue.", "warning")
         return redirect('/login')
 
+import os
+import smtplib
+from email.message import EmailMessage
+
+# Recommended: set these in your environment (export in Linux / set in hosting config)
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+SMTP_USER = os.environ.get("SMTP_USER", "vishalshettigar0724@gmail.com")
+SMTP_PASS = os.environ.get("SMTP_PASS", "rarz rrfp dfzq wlwn")
+FROM_NAME = os.environ.get("FROM_NAME", "CareerSaathi")
+
 # User registration
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form['name'].strip()
-        username = request.form['username'].strip()
+        name = request.form.get('name', '').strip()
+        username = request.form.get('username', '').strip()
         email = request.form['email'].strip()
         password = request.form['password']
 
+        # Hash password
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
         conn = get_db_connection()
@@ -78,25 +90,69 @@ def register():
                 (name, username, email, hashed_pw)
             )
             conn.commit()
-            flash("Registration successful! Please login.", "success")
+
+            # Try to send registration email synchronously
+            try:
+                send_registration_email(name or username, email, account_type="User")
+            except Exception as mail_err:
+                # Log and flash non-blocking message
+                app.logger.exception("Failed to send registration email to %s: %s", email, mail_err)
+                flash("Registered successfully, but we couldn't send the confirmation email.", "warning")
+            else:
+                flash("Registration successful! A confirmation email has been sent.", "success")
+
             return redirect('/login')
-        except sqlite3.IntegrityError:
-            flash("Username already exists!", "danger")
+        except sqlite3.IntegrityError as e:
+            # Unique constraint failure — handle appropriately
+            app.logger.warning("Registration IntegrityError: %s", e)
+            flash("Username or email already exists!", "danger")
         finally:
             conn.close()
     return render_template('register.html')
+
+
+def send_registration_email(recipient_name: str, recipient_email: str, account_type: str = "User"):
+    """
+    Send a simple registration confirmation email.
+    account_type: "User" or "Recruiter" (affects subject/body).
+    Raises exception on failure.
+    """
+    subject = f"Welcome to CareerSaathi — {account_type} Registration Successful"
+    body = f"""Hi {recipient_name},
+
+Welcome to CareerSaathi! Your {account_type.lower()} account has been successfully created.
+
+Thank you for joining CareerSaathi — your AI resume analyzer & job portal.
+
+If you have any questions, reply to this email or visit our support page.
+
+Best regards,
+{FROM_NAME} Team
+"""
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = f"{FROM_NAME} <{SMTP_USER}>"
+    msg["To"] = recipient_email
+    msg.set_content(body)
+
+    # Send using TLS
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+
 
 # Recruiter registration
 @app.route('/recruiter-register', methods=['GET', 'POST'])
 def recruiter_register():
     if request.method == 'POST':
         username = request.form['username'].strip()
-        company = request.form['company'].strip()
         email = request.form['email'].strip()
         password = request.form['password']
+        company = request.form.get('company', '').strip()
 
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
@@ -105,13 +161,23 @@ def recruiter_register():
                 (username, company, email, hashed_pw)
             )
             conn.commit()
-            flash("Recruiter registration successful! Please login.", "success")
+
+            try:
+                send_registration_email(company or username, email, account_type="Recruiter")
+            except Exception as mail_err:
+                app.logger.exception("Failed to send registration email to recruiter %s: %s", email, mail_err)
+                flash("Recruiter registered but confirmation email failed to send.", "warning")
+            else:
+                flash("Recruiter registration successful! A confirmation email has been sent.", "success")
+
             return redirect('/recruiter-login')
-        except sqlite3.IntegrityError:
-            flash("Username already exists!", "danger")
+        except sqlite3.IntegrityError as e:
+            app.logger.warning("Recruiter registration IntegrityError: %s", e)
+            flash("Username or email already exists!", "danger")
         finally:
             conn.close()
     return render_template('recruiter_register.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
