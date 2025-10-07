@@ -54,7 +54,13 @@ def download_db():
 @app.route('/index')
 def index():
     if 'username' in session:
-        return render_template('index.html', username=session['username'])
+        username=session['username']
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        user_name=cursor.execute("SELECT name FROM users WHERE username = ?", (username,)).fetchone()
+        name=user_name["name"]
+        conn.close()
+        return render_template('index.html', name=name)
     else:
         flash("Please login to continue.", "warning")
         return redirect('/login')
@@ -74,7 +80,7 @@ FROM_NAME = os.environ.get("FROM_NAME", "CareerSaathi")
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form.get('name', '').strip()
+        name = request.form.get('fullname', '').strip()
         username = request.form.get('username', '').strip()
         email = request.form['email'].strip()
         password = request.form['password']
