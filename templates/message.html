@@ -210,9 +210,11 @@
 
     <!-- Footer -->
     <form action="{{ url_for('send_message') }}" method="POST" class="chat-footer">
-      <input type="hidden" name="receiver_id" value="{{ receiver_id }}">
-      <input type="hidden" name="receiver_type" value="{{ receiver_type }}">
-      <input type="hidden" name="return_url" value="{{ return_url }}">
+       <input type="hidden" name="sender_id" value="{{ user_id }}">
+  <input type="hidden" name="sender_type" value="{{ user_type }}">
+  <input type="hidden" name="receiver_id" value="{{ receiver_id }}">
+  <input type="hidden" name="receiver_type" value="{{ receiver_type }}">
+  <input type="hidden" name="return_url" value="{{ return_url }}">
       <input type="text" name="message" placeholder="Type a message..." required>
       <button type="submit">Send</button>
     </form>
@@ -222,6 +224,11 @@
     // Auto-scroll to bottom on load
     const chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
+    
+  setInterval(() => {
+    location.reload();
+  }, 50000); // refresh every 5 seconds
+
   </script>
 </body>
 </html>

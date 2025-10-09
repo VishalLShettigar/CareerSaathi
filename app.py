@@ -76,45 +76,60 @@ SMTP_USER = os.environ.get("SMTP_USER", "vishalshettigar0724@gmail.com")
 SMTP_PASS = os.environ.get("SMTP_PASS", "rarz rrfp dfzq wlwn")
 FROM_NAME = os.environ.get("FROM_NAME", "CareerSaathi")
 
-# User registration
+
+#user registration
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         name = request.form.get('fullname', '').strip()
         username = request.form.get('username', '').strip()
-        email = request.form['email'].strip()
-        password = request.form['password']
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password')
 
-        # Hash password
-        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        if not all([name, username, email, password]):
+            flash("All fields are required.", "danger")
+            return render_template('register.html')
 
         conn = get_db_connection()
         cursor = conn.cursor()
+
         try:
+            # Check if username or email already exists
+            cursor.execute("SELECT id FROM users WHERE username=? OR email=?", (username, email))
+            existing_user = cursor.fetchone()
+
+            if existing_user:
+                flash("Username or Email already exists! Please use another.", "danger")
+                return render_template('register.html')
+
+            # Hash password and insert new user
+            hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             cursor.execute(
                 "INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)",
                 (name, username, email, hashed_pw)
             )
             conn.commit()
 
-            # Try to send registration email synchronously
+            # Try to send confirmation email
             try:
                 send_registration_email(name or username, email, account_type="User")
             except Exception as mail_err:
-                # Log and flash non-blocking message
                 app.logger.exception("Failed to send registration email to %s: %s", email, mail_err)
-                flash("Registered successfully, but we couldn't send the confirmation email.", "warning")
+                flash("Registered successfully, but email could not be sent.", "warning")
             else:
-                flash("Registration successful! A confirmation email has been sent.", "success")
+                flash("Registration successful! Confirmation email sent.", "success")
 
             return redirect('/login')
-        except sqlite3.IntegrityError as e:
-            # Unique constraint failure — handle appropriately
-            app.logger.warning("Registration IntegrityError: %s", e)
-            flash("Username or email already exists!", "danger")
+
+        except Exception as e:
+            app.logger.exception("Error during registration: %s", e)
+            flash("An unexpected error occurred. Please try again.", "danger")
+
         finally:
             conn.close()
+
     return render_template('register.html')
+
 
 
 def send_registration_email(recipient_name: str, recipient_email: str, account_type: str = "User"):
@@ -158,7 +173,7 @@ def recruiter_register():
         password = request.form['password']
         company = request.form.get('company', '').strip()
 
-        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
@@ -195,7 +210,8 @@ def login():
         cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         conn.close()
-        if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+
             # ✅ set user_id to avoid UndefinedError in chat
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -216,7 +232,7 @@ def recruiter_login():
         cursor.execute("SELECT id, password FROM recruiter WHERE username = ?", (username,))
         recruiter = cursor.fetchone()
         conn.close()
-        if recruiter and bcrypt.checkpw(password.encode('utf-8'), recruiter['password']):
+        if recruiter and bcrypt.checkpw(password.encode('utf-8'), recruiter['password'].encode('utf-8')):
             session['recruiter_id'] = recruiter['id']
             return redirect('/job-postings')
         else:
@@ -999,6 +1015,58 @@ def view_applications():
         required_skill_filter=required_skill_filter
     )
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_status_email(applicant_email, applicant_name, job_title, status):
+    """Send email notification when an applicant is shortlisted or rejected."""
+    sender_email = SMTP_USER
+    sender_password = SMTP_PASS  # App password if using Gmail
+    subject = ""
+    message = ""
+
+    if status == "shortlisted":
+        subject = f"🎉 Congratulations! You've been shortlisted for {job_title}"
+        message = f"""
+        Hi {applicant_name},
+
+        Great news! Your application for the position of "{job_title}" has been shortlisted.
+
+        Our recruitment team will contact you soon for further steps.
+
+        Best wishes,  
+        CareerSaathi Team
+        """
+    elif status == "rejected":
+        subject = f"Application Update for {job_title}"
+        message = f"""
+        Hi {applicant_name},
+
+        We appreciate your interest in the position "{job_title}". 
+        After careful consideration, we regret to inform you that you were not selected for this round.
+
+        We encourage you to apply for other suitable roles in the future.
+
+        Best regards,  
+        CareerSaathi Team
+        """
+
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = applicant_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(message, "plain"))
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, applicant_email, msg.as_string())
+        print(f"✅ Email sent to {applicant_email} for status: {status}")
+    except Exception as e:
+        print(f"⚠️ Failed to send email to {applicant_email}: {e}")
+
 
 @app.route('/shortlist-application/<int:app_id>', methods=['POST'])
 def shortlist_application(app_id):
@@ -1006,10 +1074,28 @@ def shortlist_application(app_id):
         return redirect('/recruiter-login')
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE apply SET status = 'shortlisted' WHERE id = ?", (app_id,))
-    conn.commit()
+
+    # Fetch applicant details
+    cursor.execute("SELECT applicant_email, applicant_name, job_id FROM apply WHERE id=?", (app_id,))
+    app_row = cursor.fetchone()
+
+    if app_row:
+        cursor.execute("SELECT designation FROM job WHERE id=?", (app_row['job_id'],))
+        job_row = cursor.fetchone()
+        job_title = job_row['designation'] if job_row else "a job position"
+
+        cursor.execute("UPDATE apply SET status = 'shortlisted' WHERE id = ?", (app_id,))
+        conn.commit()
+
+        # Send email
+        try:
+            send_status_email(app_row['applicant_email'], app_row['applicant_name'], job_title, "shortlisted")
+        except Exception as e:
+            print(f"⚠️ Error sending shortlist email: {e}")
+
     conn.close()
     return redirect(url_for('view_applications', action_status='shortlisted'))
+
 
 @app.route('/reject-application/<int:app_id>', methods=['POST'])
 def reject_application(app_id):
@@ -1017,10 +1103,28 @@ def reject_application(app_id):
         return redirect('/recruiter-login')
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE apply SET status = 'rejected' WHERE id = ?", (app_id,))
-    conn.commit()
+
+    # Fetch applicant details
+    cursor.execute("SELECT applicant_email, applicant_name, job_id FROM apply WHERE id=?", (app_id,))
+    app_row = cursor.fetchone()
+
+    if app_row:
+        cursor.execute("SELECT designation FROM job WHERE id=?", (app_row['job_id'],))
+        job_row = cursor.fetchone()
+        job_title = job_row['designation'] if job_row else "a job position"
+
+        cursor.execute("UPDATE apply SET status = 'rejected' WHERE id = ?", (app_id,))
+        conn.commit()
+
+        # Send email
+        try:
+            send_status_email(app_row['applicant_email'], app_row['applicant_name'], job_title, "rejected")
+        except Exception as e:
+            print(f"⚠️ Error sending rejection email: {e}")
+
     conn.close()
     return redirect(url_for('view_applications', action_status='rejected'))
+
 
 @app.route('/delete-application/<int:app_id>', methods=['POST'])
 def delete_application(app_id):
@@ -1175,7 +1279,7 @@ def user_chat(recruiter_id):
         return redirect(url_for("view_applications_submit"))
 
     recruiter = conn.execute(
-        "SELECT username, email FROM recruiter WHERE id=?", (recruiter_id,)
+        "SELECT username, email,company FROM recruiter WHERE id=?", (recruiter_id,)
     ).fetchone()
     conn.close()
 
@@ -1186,7 +1290,7 @@ def user_chat(recruiter_id):
         messages=messages,
         user_id=user_id,
         user_type="user",
-        partner_name=recruiter["username"] if recruiter else f"Recruiter #{recruiter_id}",
+        partner_name=recruiter["company"] if recruiter else f"Recruiter #{recruiter_id}",
         partner_email=recruiter["email"] if recruiter else "",
         receiver_id=recruiter_id,
         receiver_type="recruiter",
@@ -1199,26 +1303,33 @@ def user_chat(recruiter_id):
 # ---------------------------
 @app.route("/send_message", methods=["POST"])
 def send_message():
-    # Fix: check user first, then recruiter
-    if "user_id" in session:
-        sender_type = "user"
-        sender_id = session["user_id"]
-    elif "recruiter_id" in session:
-        sender_type = "recruiter"
-        sender_id = session["recruiter_id"]
-    else:
-        return redirect(url_for("login"))
-
+    sender_id = request.form.get("sender_id", type=int)
+    sender_type = request.form.get("sender_type", type=str)
     receiver_id = request.form.get("receiver_id", type=int)
     receiver_type = request.form.get("receiver_type", type=str)
     message = (request.form.get("message") or "").strip()
     return_url = request.form.get("return_url") or "/"
 
-    if not receiver_id or receiver_type not in ("user", "recruiter") or not message:
-        flash("Message cannot be empty.", "warning")
+    if not all([sender_id, sender_type, receiver_id, receiver_type, message]):
+        flash("Message cannot be empty or missing sender/receiver info.", "warning")
         return redirect(return_url)
 
+    # ✅ Optional: basic validation to ensure IDs exist
     conn = get_db_connection()
+    valid_sender = conn.execute(
+        f"SELECT id FROM {'users' if sender_type=='user' else 'recruiter'} WHERE id=?",
+        (sender_id,)
+    ).fetchone()
+    valid_receiver = conn.execute(
+        f"SELECT id FROM {'users' if receiver_type=='user' else 'recruiter'} WHERE id=?",
+        (receiver_id,)
+    ).fetchone()
+
+    if not valid_sender or not valid_receiver:
+        conn.close()
+        flash("Invalid sender or receiver.", "danger")
+        return redirect(return_url)
+
     conn.execute(
         """
         INSERT INTO messages (sender_id, sender_type, receiver_id, receiver_type, message, timestamp)
@@ -1231,6 +1342,7 @@ def send_message():
     conn.close()
 
     return redirect(return_url)
+
 
 
 from flask import Flask, request, jsonify, render_template, redirect

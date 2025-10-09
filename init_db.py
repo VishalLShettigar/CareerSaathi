@@ -7,6 +7,9 @@ def create_tables():
     # --- Drop old apply table (ONLY if exists, for dev) ---
     cursor.execute("DROP TABLE IF EXISTS users")
     cursor.execute("DROP TABLE IF EXISTS recruiter")
+    cursor.execute("DROP TABLE IF EXISTS job")
+    cursor.execute("DROP TABLE IF EXISTS apply")
+    cursor.execute("DROP TABLE IF EXISTS messages")
     # users table
 # Users table
     cursor.execute('''
@@ -14,7 +17,7 @@ def create_tables():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )
 ''')
