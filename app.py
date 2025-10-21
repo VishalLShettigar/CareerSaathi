@@ -14,7 +14,10 @@ import bcrypt
 import sqlite3
 from datetime import datetime
 import nltk
-nltk.download('stopwords')
+nltk.download('stopwords')  # Must come BEFORE importing pyresparser
+
+from utils.resume_parser import extract_resume_data, recommend_career
+
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
