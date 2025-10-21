@@ -13,6 +13,8 @@ import math
 import bcrypt
 import sqlite3
 from datetime import datetime
+import nltk
+nltk.download('stopwords')
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"

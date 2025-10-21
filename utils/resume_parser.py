@@ -7,6 +7,7 @@ from PIL import Image
 import pytesseract  # OCR for images
 from career_mapping import SKILL_CAREER_MAP
 from pyresparser import ResumeParser
+
 import spacy
 nlp = spacy.load("en_core_web_sm")
 
