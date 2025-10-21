@@ -2,7 +2,6 @@ from flask import (
     Flask, render_template, request, session, redirect, url_for,
     send_file, jsonify, flash, abort
 )
-from utils.resume_parser import extract_resume_data, recommend_career
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from werkzeug.utils import secure_filename
