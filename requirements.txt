@@ -1,6 +1,6 @@
 flask
 pyresparser
-spacy
+spacy==3.6.1
 nltk
 pdfminer.six
 python-docx

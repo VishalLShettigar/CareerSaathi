@@ -118,7 +118,7 @@
       <div class="row mb-3">
         <div class="col-md-6">
           <label>Contact Number</label>
-          <input type="text" class="form-control" name="contact_number" value="{{ job_data.contact_number if job_data }}">
+          <input type="text" class="form-control" name="contact_number" required pattern="^[0-9]{10}$" value="{{ job_data.contact_number if job_data }}">
         </div>
         <div class="col-md-6">
           <label>Email</label>

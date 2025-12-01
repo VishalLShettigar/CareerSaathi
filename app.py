@@ -827,29 +827,48 @@ def feedback():
 def view_feedback():
     conn = get_db_connection()
     cursor = conn.cursor()
+
     search = request.args.get('search', '')
     sort = request.args.get('sort', 'name')
     page = int(request.args.get('page', 1))
     per_page = 6
+
+    # Base query
     query = "SELECT * FROM feedback"
     params = []
+
+    # Searching
     if search:
         query += " WHERE name LIKE ? OR email LIKE ? OR user_type LIKE ?"
         params.extend([f"%{search}%"] * 3)
-    query += f" ORDER BY {sort}"
+
+    # Sorting logic
+    # Rating must be DESC
+    if sort == "rating":
+        query += " ORDER BY rating DESC"
+    else:
+        query += f" ORDER BY {sort} ASC"
+
     cursor.execute(query, params)
     all_feedback = cursor.fetchall()
     total = len(all_feedback)
     total_pages = (total + per_page - 1) // per_page
+
+    # Pagination
     feedbacks = all_feedback[(page - 1) * per_page: page * per_page]
+
     conn.close()
+
     return render_template('view-feedback.html',
         feedbacks=[dict(row) for row in feedbacks],
         total_feedback=total,
         total_pages=total_pages,
         page=page,
+        sort=sort,
+        search=search,
         action_status=request.args.get('status')
     )
+
 
 @app.route('/delete-feedback/<int:id>', methods=['POST'])
 def delete_feedback(id):
@@ -953,7 +972,7 @@ def view_applications():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT a.*, j.designation, j.company, j.skills_required
+        SELECT a.*, j.designation, j.company, j.skills_required,j.qualification
         FROM apply a
         JOIN job j ON a.job_id = j.id
         WHERE a.recruiter_id = ?
@@ -969,24 +988,39 @@ def view_applications():
         comp = app_row['company']
         desg = app_row['designation']
 
-        # Normalize skills
-        required_skills = set(s.strip().lower() for s in (app_row['skills_required'] or "").split(","))
-        user_skills = set(s.strip().lower() for s in (app_row['skills'] or "").split(","))
+    # Normalize skills (comma or space separated)
+        required_skills = set(
+            s.strip().lower() 
+            for s in (app_row['skills_required'] or "").replace(",", " ").split() 
+            if s.strip()
+        )
+        user_skills = set(
+            s.strip().lower() 
+            for s in (app_row['skills'] or "").replace(",", " ").split() 
+            if s.strip()
+        )
 
-        # Check matched skills
+        # Normalize education (comma or space separated)
+        required_education = set(
+            e.strip().lower() 
+            for e in (app_row['qualification'] or "").replace(",", " ").split() 
+            if e.strip()
+        )
+        user_education = set(
+            e.strip().lower() 
+            for e in (app_row['qualification'] or "").replace(",", " ").split() 
+            if e.strip()
+        )
+
+        # Check matches
         matched_skills = required_skills.intersection(user_skills)
+        matched_education = required_education.intersection(user_education)
 
-        # Determine eligibility
+        # Determine eligibility: at least ONE skill AND at least ONE education must match
         eligible = False
+        if matched_skills and matched_education:
+            eligible = True
 
-        # If required skill filter is set, check if candidate has it
-        if required_skill_filter:
-            if required_skill_filter in user_skills:
-                eligible = True  # candidate has the filtered skill
-        else:
-            # Default eligibility: at least 2 matched skills
-            if len(matched_skills) >= 2:
-                eligible = True
 
         # Update counts
         company_counts[comp][desg]['total'] += 1
@@ -1357,13 +1391,14 @@ from urllib.parse import quote_plus
 # 🔑 Keys (env vars preferred in production)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyA2tInM_ZMe87WXYQyp2EErAnmpJDhbiMo")
 SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID", "56556b0bc99cb4dd3")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyAw495ZUHPBLgmP6RR-zFBSr8nelifQIfg")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDSgQXJO_3B39aPnFfso0d5cXl9CUnKXaU")
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
-# ---------------- Utilities ---------------- #
+# ---------------- UTILITIES ---------------- #
 def _gcs_call(params: dict):
     """
     Call Google Custom Search JSON API and return items[] safely.
+    Avoid deprecated sorting parameters.
     """
     base = "https://www.googleapis.com/customsearch/v1"
     params.setdefault("key", GOOGLE_API_KEY)
@@ -1375,122 +1410,179 @@ def _gcs_call(params: dict):
         r = requests.get(base, params=params, timeout=20)
         r.raise_for_status()
         data = r.json()
-        return data.get("items", [])
+
+        if "items" not in data:
+            print("⚠ Google Search: No items found in response")
+            return []
+
+        return data["items"]
+
     except Exception as e:
-        print("Google Search Error:", e)
+        print("❗ Google Search Error:", e)
         return []
-def build_prompt(user_q: str, links: list[dict]) -> str:
-    context = []
-    for i, it in enumerate(links, 1):
-        context.append(
-            f"[{i}] {it.get('title','Untitled')}\n"
-            f"URL: {it.get('link','')}\n"
-            f"Snippet: {it.get('snippet','')}\n"
-        )
-    context_text = "\n".join(context)
+
+
+# ---------------- RANK DETECTION ---------------- #
+def is_rank_query(q: str) -> bool:
+    q = q.lower()
+    return any([
+        "top" in q,
+        "best" in q,
+        "most" in q,
+        "highest" in q,
+        "richest" in q,
+        "largest" in q,
+        "biggest" in q,
+        "top 5" in q,
+        "top 10" in q,
+        "top 20" in q,
+        "rank" in q,
+        "ranking" in q,
+        "who are the" in q
+    ])
+
+
+# ---------------- BUILD CONTEXT FOR NORMAL QUESTIONS ---------------- #
+def build_prompt(question: str, links: list[dict]) -> str:
     today = datetime.datetime.now().strftime("%B %d, %Y")
+
+    context_text = "\n".join(
+        f"[{i+1}] {it.get('title','Untitled')} - {it.get('link')}\n"
+        f"{it.get('snippet','')}\n"
+        for i, it in enumerate(links)
+    )
+
     return (
         f"Today is {today}.\n"
-        f"User question: \"{user_q}\".\n"
-        f"Use ONLY the following live web snippets to answer.\n"
-        f"List sources with their URLs. If something is unclear, say so.\n\n"
+        f"The user asked: '{question}'.\n"
+        f"Using the following web results, answer accurately and clearly.\n"
+        f"After each fact, include the citation index like [1], [2], etc.\n\n"
         f"{context_text}"
-    )  
-    
-def google_search_web(query: str, site: str | None = None, num: int = 6):
-    """
-    Real-time Google Custom Search with freshness.
-    Returns a list of dicts: {title, link, snippet, displayLink}
-    """
-    q = query if not site else f"site:{site} {query}"
-    items = _gcs_call({
-        "q": q,
-        "num": num,
-        "sort": "date",          # ✅ Ask for newest first
-        "dateRestrict": "m1",    # ✅ Restrict to last month (m1 = 1 month)
-        "safe": "active"
-    })
+    )
+
+
+# ---------------- BUILD CONTEXT FOR RANKING QUESTIONS ---------------- #
+def build_ranking_context(user_q: str, links: list[dict]) -> str:
+    lines = [f"Search context for: {user_q}\n"]
+    for i, it in enumerate(links, start=1):
+        title = it.get("title") or ""
+        snippet = it.get("snippet") or ""
+        lines.append(f"{i}. {title} — {snippet}")
+    return "\n".join(lines)
+
+
+def build_rank_prompt(user_q: str, context: str) -> str:
+    return f"""
+Ignore any irrelevant snippets.
+If snippets help — use them.
+If they don’t — ignore them.
+
+Your job is to confidently answer ranking questions using
+the best available knowledge.
+
+NEVER refuse.
+NEVER apologize.
+NEVER mention limitations.
+NEVER mention that data may not be accurate.
+NEVER say you don’t know.
+
+Just produce the best possible ranked answer.
+
+Question:
+{user_q}
+
+Reference snippets:
+{context}
+"""
+
+
+
+
+# ---------------- CALLING GOOGLE SEARCH ---------------- #
+def google_search_web(query: str, num: int = 6):
+    items = _gcs_call({"q": query, "num": num})
     results = []
+
     for it in items:
         results.append({
-            "title": it.get("title"),
-            "link": it.get("link"),
-            "snippet": it.get("snippet"),
-            "displayLink": it.get("displayLink")
+            "title": it.get("title", ""),
+            "link": it.get("link", ""),
+            "snippet": it.get("snippet", ""),
+            "displayLink": it.get("displayLink", "")
         })
     return results
 
 
-
+# ---------------- IMAGE SEARCH ---------------- #
 def google_search_images(query: str, num: int = 4):
-    """
-    Image search. Returns a list of image URLs.
-    """
     items = _gcs_call({"q": query, "searchType": "image", "num": num})
     images = []
+
     for it in items:
-        # Prefer 'link' (direct image url)
         if it.get("link"):
             images.append({
-                "url": it.get("link"),
-                "context": (it.get("image") or {}).get("contextLink") or it.get("link"),
-                "title": it.get("title")
+                "url": it["link"],
+                "context": (it.get("image") or {}).get("contextLink") or it["link"],
+                "title": it.get("title", "")
             })
+
     return images
 
-def wikipedia_fallback(query: str):
-    try:
-        return wikipedia.summary(query, sentences=3, auto_suggest=True)
-    except Exception as e:
-        print("Wikipedia Error:", e)
-        return ""
 
+# ---------------- GEMINI API ---------------- #
 def ask_gemini(prompt: str) -> str:
-    """
-    Send prompt to Gemini and return response text safely.
-    """
-    try:
-        headers = {"Content-Type": "application/json"}
-        full_url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
-        resp = requests.post(full_url, headers=headers, data=json.dumps(payload), timeout=40)
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=40)
         resp.raise_for_status()
         data = resp.json()
-        # Defensive parsing
-        candidates = data.get("candidates", [])
+
+        candidates = data.get("candidates")
         if not candidates:
-            return "I couldn’t generate a response right now."
-        content = candidates[0].get("content", {})
-        parts = content.get("parts", [])
-        if not parts:
-            return "I couldn’t generate a response right now."
-        return parts[0].get("text", "I couldn’t generate a response right now.")
+            return "No response from Gemini."
+
+        output = candidates[0].get("content", {}).get("parts", [{}])[0].get("text")
+        return output or "Empty response from Gemini."
+
+    except requests.exceptions.HTTPError as e:
+        print("❗ HTTP ERROR:", e)
+        return "Gemini API Key Invalid or endpoint issue."
+
     except Exception as e:
-        print("Gemini Error:", e)
-        return "I couldn’t reach the language model at the moment."
+        print("❗ Gemini Error:", e)
+        return "Connection to Gemini failed."
 
-def build_search_context(links: list[dict]) -> str:
-    """
-    Build a readable context block for Gemini with titles + URLs + snippets.
-    """
-    lines = []
-    for i, it in enumerate(links, start=1):
-        title = it.get("title") or "Untitled"
-        url = it.get("link") or ""
-        snippet = it.get("snippet") or ""
-        lines.append(f"[{i}] {title}\nURL: {url}\nSnippet: {snippet}\n")
-    return "\n".join(lines)
 
+# ---------------- IMAGE & YOUTUBE DETECTION ---------------- #
 def is_image_query(text: str) -> bool:
     k = text.lower()
-    triggers = ["image", "images", "picture", "pictures", "photos", "photo", "logo", "poster", "wallpaper"]
+    triggers = ["image", "picture", "photo", "photos", "images", "logo", "wallpaper", "poster"]
     return any(t in k for t in triggers)
+
 
 def is_youtube_query(text: str) -> bool:
     k = text.lower()
-    triggers = ["youtube", "video", "watch", "tutorial", "playlist"]
+    triggers = ["youtube", "video", "watch", "tutorial", "playlist", "lecture"]
     return any(t in k for t in triggers)
+
+
+# ---------------- MAIN FUNCTION TO ANSWER USER ---------------- #
+def answer_query(user_q: str):
+    # detect ranking-type question
+    if is_rank_query(user_q):
+        links = google_search_web(user_q, num=8)
+        context = build_ranking_context(user_q, links)
+        prompt = build_rank_prompt(user_q, context)
+        return ask_gemini(prompt)
+
+    # normal question
+    links = google_search_web(user_q, num=6)
+    prompt = build_prompt(user_q, links)
+    return ask_gemini(prompt)
+
 
 # ---------------- Routes ---------------- #
 @app.route('/chatbot')

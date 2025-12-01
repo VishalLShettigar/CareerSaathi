@@ -105,7 +105,7 @@
       </div>
       <div class="col-md-3">
         <select name="sort" class="form-select">
-          <option value="title" {% if request.args.get('sort') == 'title' %}selected{% endif %}>Sort by Title</option>
+          <option value="designation" {% if request.args.get('sort') == 'designation' %}selected{% endif %}>Sort by Title</option>
           <option value="company" {% if request.args.get('sort') == 'company' %}selected{% endif %}>Sort by Company</option>
         </select>
       </div>

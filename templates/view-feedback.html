@@ -94,10 +94,12 @@
         <input type="text" class="form-control" name="search" placeholder="Search by name,email or usertype" value="{{ request.args.get('search', '') }}">
       </div>
       <div class="col-md-3">
-        <select name="sort" class="form-select">
-          <option value="name" {% if request.args.get('sort') == 'name' %}selected{% endif %}>Sort by Name</option>
-          <option value="rating" {% if request.args.get('sort') == 'rating' %}selected{% endif %}>Sort by Rating</option>
-        </select>
+        <select id="sortSelect" name="sort" onchange="this.form.submit()" class="form-select">
+    <option value="name" {% if sort=='name' %}selected{% endif %}>Sort by Name</option>
+    <option value="email" {% if sort=='email' %}selected{% endif %}>Sort by Email</option>
+    <option value="rating" {% if sort=='rating' %}selected{% endif %}>Sort by Rating (High → Low)</option>
+</select>
+
       </div>
       <div class="col-md-2">
         <button type="submit" class="btn btn-primary w-100">Apply</button>

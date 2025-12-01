@@ -312,7 +312,48 @@
         form.classList.remove('was-validated');
         let valid=true;
 
-        if(!fullname.value || fullname.value.trim().length<3){ fullname.classList.add('is-invalid'); valid=false; } else { fullname.classList.remove('is-invalid'); }
+fullname.addEventListener('input', () => {
+    let value = fullname.value;
+
+    // 1) Prevent first character from being space
+    if (value.length === 1 && value[0] === ' ') {
+        value = "";
+    }
+
+    // 2) Remove all numbers & special characters — allow only letters + spaces
+    value = value.replace(/[^a-zA-Z\s]/g, '');
+
+    // 3) Prevent double consecutive spaces
+    value = value.replace(/\s{2,}/g, ' ');
+
+    // override corrected value back into input box
+    fullname.value = value;
+
+    // 4) Validation — must be at least 3 letters
+    if(value.trim().length < 3){
+        fullname.classList.add('is-invalid');
+        valid = false;
+    } else {
+        fullname.classList.remove('is-invalid');
+    }
+});
+
+// additionally block invalid keypress
+fullname.addEventListener('keypress', (e) => {
+
+    // Allow only letters & space
+    if (!/[a-zA-Z\s]/.test(e.key)) {
+        e.preventDefault();
+    }
+
+    // disallow space as first character
+    if (fullname.value.length === 0 && e.key === ' ') {
+        e.preventDefault();
+    }
+});
+
+
+
         if(!username.value || username.value.trim().length<3){ username.classList.add('is-invalid'); valid=false; } else { username.classList.remove('is-invalid'); }
         const emailRegex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if(!email.value || !emailRegex.test(email.value)){ email.classList.add('is-invalid'); valid=false; } else { email.classList.remove('is-invalid'); }
